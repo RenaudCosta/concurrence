@@ -6,7 +6,7 @@ from Settings import *
 import _thread
 import sys
 from random import randint
-import logging
+import time
 
 def move(thread_id, persons, obstacles, draw):
     while True:
@@ -26,24 +26,36 @@ def move(thread_id, persons, obstacles, draw):
             else:
                 person.y -= 1
                 person.x -= 1
-        print(person.x, person.y)
-        draw.update(person)
+        if draw != 0:
+            draw.update(person)
 
-def simulation():
-    settings = generateSettings()
+def simulation(settings):
     nbPersons = pow(2, int(settings.persons))
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
     threads = []
 
-    draw = GroundDraw(obstacles, persons)
+    startingTime = time.clock()
+    if not settings.metrics:
+        draw = GroundDraw(obstacles, persons)
+    else:
+        draw = 0
+
+
     if settings.mode == "0":
         for i in range(nbPersons):
-            _thread.start_new_thread(move, (i,persons,obstacles,draw,))
+            threads.append(_thread.start_new_thread(move, (i,persons,obstacles,draw,)))
     elif settings.mode == 1:
         for i in range(4):
-            print("TODO")
+            # TODO
+            threads.append(_thread.start_new_thread())
 
+
+    # After the simulation is over
+    execTime = time.clock() - startingTime
+
+    if settings.metrics:
+        return execTime
 
 
 def isInObstacle(x, y, obstacles):
@@ -102,5 +114,14 @@ def generateSettings():
     return Settings(t, p, m)
 
 
-logging.basicConfig(filename='log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-simulation()
+settings = generateSettings()
+if settings.metrics:
+    execTimes = []
+    for i in range(5):
+        execTimes.append(simulation(settings))
+    execTimes.remove(max(execTimes))
+    execTimes.remove(min(execTimes))
+    average = (execTimes[0]+execTimes[1]+execTimes[2])/3
+    print("Execution time: " + str(average)[0:8] + "s")
+else:
+    simulation(settings)
