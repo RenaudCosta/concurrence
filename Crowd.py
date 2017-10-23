@@ -8,10 +8,16 @@ import sys
 
 from random import randint
 
-def simulation(nbPersons):
+def simulation():
+    settings = generateSettings()
+    nbPersons = pow(2, int(settings.persons))
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
-    draw = GroundDraw(obstacles, persons)
+    threads = []
+    if settings.mode == 0:
+        for i in range(nbPersons):
+            print("")
+    GroundDraw(obstacles, persons)
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
@@ -34,6 +40,12 @@ def createPersons(nbPersons, obstacles):
     for y in range(128):
         for x in range(512):
                 spots.append([x, y])
+
+    #remove exit as an availible spot
+    spots.remove([0, 0])
+    spots.remove([0, 1])
+    spots.remove([1, 0])
+    spots.remove([1, 1])
 
     for n in range(nbPersons):
         index = randint(0, len(spots))
@@ -62,8 +74,4 @@ def generateSettings():
                     m = True
     return Settings(t, p, m)
 
-
-simulation(16)
-settings = generateSettings()
-
-print(settings.mode, settings.persons, settings.metrics)
+simulation()
