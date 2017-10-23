@@ -1,3 +1,4 @@
+from Person import *
 from Obstacle import *
 from GroundDraw import *
 from Personne import *
