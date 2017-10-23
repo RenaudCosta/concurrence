@@ -24,11 +24,6 @@ def createPersons(nbPersons, obstacles):
         for x in range(256):
                 spots.append([x, y])
 
-
-obstacles = createObstacles()
-personnes = createPersonnes()
-draw = GroundDraw(obstacles, personnes)
-
     for obs in obstacles:
         for y in range(obs.y1, obs.y2+1):
             for x in range(obs.x1, obs.x2+1):
@@ -42,6 +37,10 @@ draw = GroundDraw(obstacles, personnes)
         persons.append(person)
 
     return persons
+
+obstacles = createObstacles()
+personnes = createPersons(10, obstacles)
+draw = GroundDraw(obstacles, personnes)
 
 
 simulation(64)
