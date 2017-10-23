@@ -26,7 +26,6 @@ def move(thread_id, persons, obstacles, draw):
             else:
                 person.y -= 1
                 person.x -= 1
-        print(person.x, person.y)
         draw.update(person)
 
 def simulation():
@@ -43,6 +42,7 @@ def simulation():
     elif settings.mode == 1:
         for i in range(4):
             print("TODO")
+    draw.start()
 
 
 

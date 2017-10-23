@@ -1,4 +1,6 @@
+import thread
 from tkinter import *
+import _thread
 
 
 class GroundDraw:
@@ -11,16 +13,15 @@ class GroundDraw:
         self.drawPersons(persons)
         self.drawExit()
         self.canvas.pack()
-        self.window.mainloop()
 
     def update(self, person):
         x = person.x
         y = person.y
-        self.canvas.delete(person.id)
+        self.canvas.delete(self.characterPosition[person.id])
         newRect = self.canvas.create_rectangle(x * self.factor, y * self.factor, (x + 1) * self.factor,
                                                (y + 1) * self.factor,
                                                fill='red')
-        self.characterPosition[id] = newRect
+        self.characterPosition[person.id] = newRect
 
     def createCanvas(self):
         longeur = 512 * self.factor
@@ -45,3 +46,6 @@ class GroundDraw:
 
     def drawExit(self):
         self.canvas.create_rectangle(0, 0, 6, 6, fill='green')
+
+    def start(self):
+        self.window.mainloop()
