@@ -1,7 +1,8 @@
+#!/usr/bin/python
 from Person import *
 from Obstacle import *
 from GroundDraw import *
-from Personne import *
+from threading import Thread
 
 from random import randint
 
@@ -9,6 +10,13 @@ def simulation(nbPersons):
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
     draw = GroundDraw(obstacles, persons)
+
+def isInObstacle(x, y, obstacles):
+    for obs in obstacles:
+        if x > obs.x1 and x < obs.x2:
+            if y > obs.y1 and y < obs.y2:
+                return True
+    return False
 
 def createObstacles():
     obstacle1 = Obstacle(50, 30, 100, 60)
@@ -22,18 +30,18 @@ def createPersons(nbPersons, obstacles):
     persons = []
     spots = []
     for y in range(128):
-        for x in range(256):
+        for x in range(512):
                 spots.append([x, y])
-
-    for obs in obstacles:
-        for y in range(obs.y1, obs.y2+1):
-            for x in range(obs.x1, obs.x2+1):
-                if [x, y] in spots:
-                    spots.remove([x, y])
 
     for n in range(nbPersons):
         index = randint(0, len(spots))
-        person = Person(spots[index][0], spots[index][1])
+        newX = spots[index][0]
+        newY = spots[index][1]
+        while isInObstacle(newX, newY, obstacles):
+            index = randint(0, len(spots))
+            newX = spots[index][0]
+            newY = spots[index][1]
+        person = Person(newX, newY)
         del spots[index]
         persons.append(person)
 
