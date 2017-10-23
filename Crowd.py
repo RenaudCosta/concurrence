@@ -49,6 +49,8 @@ def simulation(settings):
         for i in range(4):
             # TODO
             threads.append(_thread.start_new_thread())
+            print("TODO")
+    draw.start()
 
 
     # After the simulation is over
