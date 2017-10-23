@@ -2,12 +2,16 @@
 from Person import *
 from Obstacle import *
 from GroundDraw import *
+from Settings import *
+from threading import Thread
+import sys
+
 from random import randint
 
 def simulation(nbPersons):
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
-    GroundDraw(obstacles, persons)
+    draw = GroundDraw(obstacles, persons)
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
@@ -45,4 +49,21 @@ def createPersons(nbPersons, obstacles):
 
     return persons
 
+def generateSettings():
+    t, p, m = 0, 4, False
+    if len(sys.argv) > 1:
+        for i in range(1, len(sys.argv)):
+            if sys.argv[i][0] == "-":
+                if sys.argv[i][1] == "t":
+                    t = sys.argv[i][2]
+                elif sys.argv[i][1] == "p":
+                    p = sys.argv[i][2]
+                elif sys.argv[i][1] == "m":
+                    m = True
+    return Settings(t, p, m)
+
+
 simulation(16)
+settings = generateSettings()
+
+print(settings.mode, settings.persons, settings.metrics)
