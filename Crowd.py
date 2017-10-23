@@ -16,13 +16,16 @@ def simulation():
     threads = []
     if settings.mode == 0:
         for i in range(nbPersons):
-            print("")
+            threads.append(Thread())
+    elif settings.mode == 1:
+        for i in range(4):
+            threads.append(Thread())
     GroundDraw(obstacles, persons)
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
-        if x > obs.x1 and x < obs.x2:
-            if y > obs.y1 and y < obs.y2:
+        if x >= obs.x1 and x <= obs.x2:
+            if y >= obs.y1 and y <= obs.y2:
                 return True
     return False
 
