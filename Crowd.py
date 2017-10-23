@@ -3,10 +3,31 @@ from Person import *
 from Obstacle import *
 from GroundDraw import *
 from Settings import *
-from threading import Thread
+import _thread
 import sys
-
 from random import randint
+import logging
+
+def move(thread_id, persons, obstacles, draw):
+    while True:
+        person = persons[thread_id]
+        if person.y == 0:
+            if not isInObstacle(person.x-1, 0, obstacles):
+                person.x -= 1
+        elif person.x == 0:
+            if not isInObstacle(0, person.y-1, obstacles):
+                person.y -= 1
+        else:
+            if isInObstacle(person.x-1, person.y-1, obstacles):
+                if not isInObstacle(person.x, person.y-1, obstacles):
+                    person.y -= 1
+                elif not isInObstacle(person.x-1, person.y, obstacles):
+                    person.x -= 1
+            else:
+                person.y -= 1
+                person.x -= 1
+        print(person.x, person.y)
+        draw.update(person)
 
 def simulation():
     settings = generateSettings()
@@ -14,13 +35,16 @@ def simulation():
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
     threads = []
-    if settings.mode == 0:
+
+    draw = GroundDraw(obstacles, persons)
+    if settings.mode == "0":
         for i in range(nbPersons):
-            threads.append(Thread())
+            _thread.start_new_thread(move, (i,persons,obstacles,draw,))
     elif settings.mode == 1:
         for i in range(4):
-            threads.append(Thread())
-    GroundDraw(obstacles, persons)
+            print("TODO")
+
+
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
@@ -77,4 +101,6 @@ def generateSettings():
                     m = True
     return Settings(t, p, m)
 
+
+logging.basicConfig(filename='log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 simulation()
