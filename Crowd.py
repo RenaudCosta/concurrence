@@ -58,7 +58,7 @@ def createPersons(nbPersons, obstacles):
             index = randint(0, len(spots))
             newX = spots[index][0]
             newY = spots[index][1]
-        person = Person(newX, newY)
+        person = Person(newX, newY, n+1)
         del spots[index]
         persons.append(person)
 
