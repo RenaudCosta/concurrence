@@ -7,7 +7,8 @@ from random import randint
 
 def simulation(nbPersons):
     obstacles = createObstacles()
-    persons = createPersons(10, obstacles)
+    persons = createPersons(nbPersons, obstacles)
+    draw = GroundDraw(obstacles, persons)
 
 def createObstacles():
     obstacle1 = Obstacle(50, 30, 100, 60)
@@ -38,9 +39,4 @@ def createPersons(nbPersons, obstacles):
 
     return persons
 
-obstacles = createObstacles()
-personnes = createPersons(10, obstacles)
-draw = GroundDraw(obstacles, personnes)
-
-
-simulation(64)
+simulation(16)
