@@ -2,14 +2,12 @@
 from Person import *
 from Obstacle import *
 from GroundDraw import *
-from threading import Thread
-
 from random import randint
 
 def simulation(nbPersons):
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
-    draw = GroundDraw(obstacles, persons)
+    GroundDraw(obstacles, persons)
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:

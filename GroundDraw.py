@@ -8,6 +8,7 @@ class GroundDraw:
         self.createCanvas()
         self.drawObstacles(obstacles)
         self.drawPersons(persons)
+        self.drawExit()
         self.canvas.pack()
         self.window.mainloop()
 
@@ -30,4 +31,8 @@ class GroundDraw:
             personne = persons[i]
             x = personne.x
             y = personne.y
-            self.canvas.create_rectangle(x * self.factor, y * self.factor, (x+1) * self.factor, (y+1) * self.factor, fill='red')
+            self.canvas.create_rectangle(x * self.factor, y * self.factor, (x + 1) * self.factor, (y + 1) * self.factor,
+                                         fill='red')
+
+    def drawExit(self):
+        self.canvas.create_rectangle(0, 0, 6, 6, fill='green')
