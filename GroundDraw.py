@@ -2,25 +2,32 @@ from tkinter import *
 
 
 class GroundDraw:
-    def __init__(self, obstacles, personnes):
+    def __init__(self, obstacles, persons):
+        self.factor = 3
         self.window = Tk()
-        self.obstacles = obstacles
-        longeur = 512
-        largeur = 128
-        self.canvas = Canvas(self.window, width=longeur, height=largeur, background='gray')
-
-        for i in range(0, len(obstacles), 1):
-            obstacle = obstacles[i]
-            self.canvas.create_rectangle(obstacle.x1, obstacle.y1, obstacle.x2, obstacle.y2, fill = 'black')
-
-        for i in range(0,len(personnes),1):
-            personne = personnes[i]
-            x = personne.x
-            y = personne.y
-            self.canvas.create_rectangle(x,y,x+3,y+3, fill = 'red')
-
+        self.createCanvas()
+        self.drawObstacles(obstacles)
+        self.drawPersons(persons)
         self.canvas.pack()
         self.window.mainloop()
 
     def update(self, arg):
         return arg
+
+    def createCanvas(self):
+        longeur = 512 * self.factor
+        largeur = 128 * self.factor
+        self.canvas = Canvas(self.window, width=longeur, height=largeur, background='gray')
+
+    def drawObstacles(self, obstacles):
+        for i in range(0, len(obstacles), 1):
+            obstacle = obstacles[i]
+            self.canvas.create_rectangle(obstacle.x1 * self.factor, obstacle.y1 * self.factor,
+                                         obstacle.x2 * self.factor, obstacle.y2 * self.factor, fill='black')
+
+    def drawPersons(self, persons):
+        for i in range(0, len(persons), 1):
+            personne = persons[i]
+            x = personne.x
+            y = personne.y
+            self.canvas.create_rectangle(x * self.factor, y * self.factor, (x+1) * self.factor, (y+1) * self.factor, fill='red')
