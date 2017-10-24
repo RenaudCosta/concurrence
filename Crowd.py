@@ -10,9 +10,12 @@ import time
 
 
 def move(thread_id, persons, obstacles, draw):
-    while True:
+    reach_exit = False
+    while not reach_exit:
         person = persons[thread_id]
-        if person.y == 0:
+        if person.reach_exit():
+            reach_exit = True
+        elif person.y == 0:
             if not isInObstacle(person.x - 1, 0, obstacles):
                 person.x -= 1
         elif person.x == 0:
