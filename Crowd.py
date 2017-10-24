@@ -7,12 +7,14 @@ import _thread
 import sys
 from random import randint
 import time
+from OccupArray import *
 
 
-def move(thread_id, persons, obstacles, draw):
+def move(thread_id, persons, obstacles, draw, grid):
     reach_exit = False
     while not reach_exit:
         person = persons[thread_id]
+        grid.remove_occupation(person)
         if person.reach_exit():
             reach_exit = True
         elif person.y == 0:
@@ -30,6 +32,8 @@ def move(thread_id, persons, obstacles, draw):
             else:
                 person.y -= 1
                 person.x -= 1
+        if not person.reach_exit():
+            grid.set_occupation(person)
         if draw != 0:
             draw.update(person)
 
@@ -38,6 +42,7 @@ def simulation(settings):
     nbPersons = pow(2, int(settings.persons))
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
+    grid = OccupArray(persons)
     threads = []
 
     startingTime = time.clock()
@@ -48,7 +53,7 @@ def simulation(settings):
 
     if settings.mode == "0":
         for i in range(nbPersons):
-            threads.append(_thread.start_new_thread(move, (i, persons, obstacles, draw,)))
+            threads.append(_thread.start_new_thread(move, (i, persons, obstacles, draw, grid,)))
     elif settings.mode == 1:
         for i in range(4):
             # TODO

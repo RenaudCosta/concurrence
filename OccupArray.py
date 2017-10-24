@@ -1,4 +1,4 @@
-class Grid:
+class OccupArray:
     def __init__(self, personages):
         self.occupied_array = [[False for i in range(128)] for j in range(512)]
         for person in personages:
