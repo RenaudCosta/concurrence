@@ -13,13 +13,14 @@ class GroundDraw:
         self.canvas.pack()
 
     def update(self, person):
-        x = person.x
-        y = person.y
         self.canvas.delete(self.characterPosition[person.id])
-        newRect = self.canvas.create_rectangle(x * self.factor, y * self.factor, (x + 1) * self.factor,
-                                               (y + 1) * self.factor,
-                                               fill='red')
-        self.characterPosition[person.id] = newRect
+        if not person.reach_exit():
+            x = person.x
+            y = person.y
+            newRect = self.canvas.create_rectangle(x * self.factor, y * self.factor, (x + 1) * self.factor,
+                                                   (y + 1) * self.factor,
+                                                   fill='red')
+            self.characterPosition[person.id] = newRect
 
     def create_canvas(self):
         longeur = 512 * self.factor
