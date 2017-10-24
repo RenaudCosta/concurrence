@@ -54,7 +54,8 @@ def simulation(settings):
             # TODO
             threads.append(_thread.start_new_thread())
             print("TODO")
-    draw.start()
+    if not settings.metrics:
+        draw.start()
 
     # After the simulation is over
     execTime = time.clock() - startingTime
