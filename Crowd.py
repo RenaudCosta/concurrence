@@ -7,7 +7,7 @@ import _thread
 import sys
 from random import randint
 import time
-from threading import Lock
+from threading import Lock, Thread
 import psutil
 
 def move(thread_id, persons, obstacles, draw):
@@ -35,13 +35,15 @@ def simulation(settings):
     else:
         draw = 0
 
+    threads = []
+
     if settings.mode == "0":
         for i in range(nbPersons):
-            _thread.start_new_thread(move, (i, persons, obstacles, draw,))
+            threads.append(Thread(target=move, args=(i, persons, obstacles, draw,)))
+            threads[len(threads)-1].start()
     elif settings.mode == "1":
         for i in range(4):
             # TODO
-            _thread.start_new_thread()
             print("TODO")
     if not settings.metrics:
         draw.start()
@@ -84,7 +86,7 @@ def createPersons(nbPersons, obstacles):
     spots.remove([1, 1])
 
     for n in range(nbPersons):
-        index = randint(0, len(spots))
+        index = randint(0, len(spots)-1)
         newX = spots[index][0]
         newY = spots[index][1]
         while isInObstacle(newX, newY, obstacles):
