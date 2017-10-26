@@ -8,18 +8,19 @@ import sys
 from random import randint
 import time
 from OccupArray import *
-
+from threading import Lock
 
 def move(thread_id, persons, obstacles, draw, grid):
     reach_exit = False
     person = persons[thread_id]
+    lockMatrix[person.x][person.y].acquire()
     while not reach_exit:
-        grid.remove_occupation(person)
+        #grid.remove_occupation(person)
         if person.reach_exit():
             reach_exit = True
         else:
             make_person_move(obstacles, person, grid)
-            grid.set_occupation(person)
+            #grid.set_occupation(person)
             if draw != 0:
                 draw.update(person)
 
@@ -115,25 +116,34 @@ def generateSettings():
 
 def make_person_move(obstacles, person, grid):
     if person.y == 0:
-        if not isInObstacle(person.x - 1, 0, obstacles) and not grid.is_person_on_tile(person.x - 1, 0):
+        if not isInObstacle(person.x - 1, 0, obstacles):
+            lockMatrix[person.x-1][0].acquire()
             person.x -= 1
+            lockMatrix[person.x+1][0].release()
     elif person.x == 0:
-        if not isInObstacle(0, person.y - 1, obstacles) and not grid.is_person_on_tile(0, person.y - 1):
+        if not isInObstacle(0, person.y - 1, obstacles):
+            lockMatrix[0][person.y-1].acquire()
             person.y -= 1
+            lockMatrix[0][person.y+1].release()
     else:
-        if isInObstacle(person.x - 1, person.y - 1, obstacles) and not grid.is_person_on_tile(person.x - 1,
-                                                                                              person.y - 1):
-            if not isInObstacle(person.x, person.y - 1, obstacles) and not grid.is_person_on_tile(person.x,
-                                                                                                  person.y - 1):
+        if isInObstacle(person.x - 1, person.y - 1, obstacles):
+            if not isInObstacle(person.x, person.y - 1, obstacles):
+                lockMatrix[person.x][person.y-1].acquire()
                 person.y -= 1
-            elif not isInObstacle(person.x - 1, person.y, obstacles) and not grid.is_person_on_tile(person.x - 1,
-                                                                                                    person.y):
+                lockMatrix[person.x][person.y+1].release()
+            elif not isInObstacle(person.x - 1, person.y, obstacles):
+                lockMatrix[person.x-1][person.y].acquire()
                 person.x -= 1
+                lockMatrix[person.x+1][person.y].release()
         else:
+            lockMatrix[person.x-1][person.y-1].acquire()
             person.y -= 1
             person.x -= 1
+            lockMatrix[person.x+1][person.y+1].release()
 
 
+global lockMatrix
+lockMatrix = [[Lock() for k in range(128)] for j in range(512)]
 settings = generateSettings()
 if settings.metrics:
     execTimes = []
@@ -145,5 +155,3 @@ if settings.metrics:
     print("Execution time: " + str(average)[0:8] + "s")
 else:
     simulation(settings)
-
-
