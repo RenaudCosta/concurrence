@@ -10,17 +10,15 @@ import time
 from OccupArray import *
 from threading import Lock
 
-def move(thread_id, persons, obstacles, draw, grid):
+def move(thread_id, persons, obstacles, draw):
     reach_exit = False
     person = persons[thread_id]
     lockMatrix[person.x][person.y].acquire()
     while not reach_exit:
-        #grid.remove_occupation(person)
         if person.reach_exit():
             reach_exit = True
         else:
-            make_person_move(obstacles, person, grid)
-            #grid.set_occupation(person)
+            make_person_move(obstacles, person)
             if draw != 0:
                 draw.update(person)
 
@@ -29,7 +27,6 @@ def simulation(settings):
     nbPersons = pow(2, int(settings.persons))
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
-    grid = OccupArray(persons)
     threads = []
 
     startingTime = time.clock()
@@ -40,7 +37,7 @@ def simulation(settings):
 
     if settings.mode == "0":
         for i in range(nbPersons):
-            threads.append(_thread.start_new_thread(move, (i, persons, obstacles, draw, grid,)))
+            threads.append(_thread.start_new_thread(move, (i, persons, obstacles, draw,)))
     elif settings.mode == 1:
         for i in range(4):
             # TODO
@@ -114,7 +111,7 @@ def generateSettings():
                     m = True
     return Settings(t, p, m)
 
-def make_person_move(obstacles, person, grid):
+def make_person_move(obstacles, person):
     if person.y == 0:
         if not isInObstacle(person.x - 1, 0, obstacles):
             lockMatrix[person.x-1][0].acquire()
@@ -140,6 +137,8 @@ def make_person_move(obstacles, person, grid):
             person.y -= 1
             person.x -= 1
             lockMatrix[person.x+1][person.y+1].release()
+    if person.reach_exit():
+        lockMatrix[person.x][person.y].release()
 
 
 global lockMatrix
