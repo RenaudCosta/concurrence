@@ -7,8 +7,8 @@ import _thread
 import sys
 from random import randint
 import time
-from OccupArray import *
 from threading import Lock
+import psutil
 
 def move(thread_id, persons, obstacles, draw):
     reach_exit = False
@@ -27,9 +27,9 @@ def simulation(settings):
     nbPersons = pow(2, int(settings.persons))
     obstacles = createObstacles()
     persons = createPersons(nbPersons, obstacles)
-    threads = []
 
     startingTime = time.clock()
+    psutil.cpu_percent(interval=None) # 1st call
     if not settings.metrics:
         draw = GroundDraw(obstacles, persons)
     else:
@@ -37,11 +37,11 @@ def simulation(settings):
 
     if settings.mode == "0":
         for i in range(nbPersons):
-            threads.append(_thread.start_new_thread(move, (i, persons, obstacles, draw,)))
-    elif settings.mode == 1:
+            _thread.start_new_thread(move, (i, persons, obstacles, draw,))
+    elif settings.mode == "1":
         for i in range(4):
             # TODO
-            threads.append(_thread.start_new_thread())
+            _thread.start_new_thread()
             print("TODO")
     if not settings.metrics:
         draw.start()
@@ -50,7 +50,7 @@ def simulation(settings):
     execTime = time.clock() - startingTime
 
     if settings.metrics:
-        return execTime
+        return [execTime, psutil.cpu_percent(interval=None)]
 
 
 def isInObstacle(x, y, obstacles):
@@ -146,11 +146,19 @@ lockMatrix = [[Lock() for k in range(128)] for j in range(512)]
 settings = generateSettings()
 if settings.metrics:
     execTimes = []
+    cpuUsages = []
     for i in range(5):
-        execTimes.append(simulation(settings))
+        metrics = simulation(settings)
+        execTimes.append(metrics[0])
+        cpuUsages.append(metrics[1])
+
     execTimes.remove(max(execTimes))
     execTimes.remove(min(execTimes))
-    average = (execTimes[0] + execTimes[1] + execTimes[2]) / 3
-    print("Execution time: " + str(average)[0:8] + "s")
+    cpuUsages.remove(max(cpuUsages))
+    cpuUsages.remove(min(cpuUsages))
+    averageTime = (execTimes[0] + execTimes[1] + execTimes[2]) / 3
+    averageCPU = (cpuUsages[0] + cpuUsages[1] + cpuUsages[2]) / 3
+    print("Average execution time: " + str(averageTime)[0:8] + "s")
+    print("Average CPU Usage: " + str(averageCPU)[0:5] + "%")
 else:
     simulation(settings)
