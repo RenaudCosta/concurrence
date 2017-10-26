@@ -12,33 +12,16 @@ from OccupArray import *
 
 def move(thread_id, persons, obstacles, draw, grid):
     reach_exit = False
+    person = persons[thread_id]
     while not reach_exit:
-        person = persons[thread_id]
         grid.remove_occupation(person)
         if person.reach_exit():
             reach_exit = True
-        elif person.y == 0:
-            if not isInObstacle(person.x - 1, 0, obstacles) and not grid.is_person_on_tile(person.x - 1, 0):
-                person.x -= 1
-        elif person.x == 0:
-            if not isInObstacle(0, person.y - 1, obstacles) and not grid.is_person_on_tile(0, person.y - 1):
-                person.y -= 1
         else:
-            if isInObstacle(person.x - 1, person.y - 1, obstacles) and not grid.is_person_on_tile(person.x - 1,
-                                                                                                  person.y - 1):
-                if not isInObstacle(person.x, person.y - 1, obstacles) and not grid.is_person_on_tile(person.x,
-                                                                                                      person.y - 1):
-                    person.y -= 1
-                elif not isInObstacle(person.x - 1, person.y, obstacles) and not grid.is_person_on_tile(person.x - 1,
-                                                                                                        person.y):
-                    person.x -= 1
-            else:
-                person.y -= 1
-                person.x -= 1
-        if not person.reach_exit():
+            make_person_move(obstacles, person, grid)
             grid.set_occupation(person)
-        if draw != 0:
-            draw.update(person)
+            if draw != 0:
+                draw.update(person)
 
 
 def simulation(settings):
@@ -130,6 +113,26 @@ def generateSettings():
                     m = True
     return Settings(t, p, m)
 
+def make_person_move(obstacles, person, grid):
+    if person.y == 0:
+        if not isInObstacle(person.x - 1, 0, obstacles) and not grid.is_person_on_tile(person.x - 1, 0):
+            person.x -= 1
+    elif person.x == 0:
+        if not isInObstacle(0, person.y - 1, obstacles) and not grid.is_person_on_tile(0, person.y - 1):
+            person.y -= 1
+    else:
+        if isInObstacle(person.x - 1, person.y - 1, obstacles) and not grid.is_person_on_tile(person.x - 1,
+                                                                                              person.y - 1):
+            if not isInObstacle(person.x, person.y - 1, obstacles) and not grid.is_person_on_tile(person.x,
+                                                                                                  person.y - 1):
+                person.y -= 1
+            elif not isInObstacle(person.x - 1, person.y, obstacles) and not grid.is_person_on_tile(person.x - 1,
+                                                                                                    person.y):
+                person.x -= 1
+        else:
+            person.y -= 1
+            person.x -= 1
+
 
 settings = generateSettings()
 if settings.metrics:
@@ -142,3 +145,5 @@ if settings.metrics:
     print("Execution time: " + str(average)[0:8] + "s")
 else:
     simulation(settings)
+
+
