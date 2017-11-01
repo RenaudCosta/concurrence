@@ -3,7 +3,6 @@ from Person import *
 from Obstacle import *
 from GroundDraw import *
 from Settings import *
-import _thread
 import sys
 from random import randint
 import time
@@ -23,6 +22,10 @@ def move(thread_id, persons, obstacles, draw):
                 draw.update(person)
 
 
+def move_persons(thread_id, persons, obstacles, draw):
+    print("donothing")
+
+
 def simulation(settings):
     nbPersons = pow(2, int(settings.persons))
     obstacles = createObstacles()
@@ -40,11 +43,12 @@ def simulation(settings):
     if settings.mode == "0":
         for i in range(nbPersons):
             threads.append(Thread(target=move, args=(i, persons, obstacles, draw,)))
-            threads[len(threads)-1].start()
+            threads[i].start()
     elif settings.mode == "1":
         for i in range(4):
-            # TODO
-            print("TODO")
+            threads.append(Thread(target=move_persons, args=(i, persons, obstacles, draw,)))
+            threads[i].start()
+
     if not settings.metrics:
         draw.start()
 
@@ -115,12 +119,12 @@ def generateSettings():
 
 def make_person_move(obstacles, person):
     if person.y == 0:
-        if not isInObstacle(person.x - 1, 0, obstacles):
+        if not isInObstacle(person.x - 1, 0, obstacles): # Move West
             lockMatrix[person.x-1][0].acquire()
             person.x -= 1
             lockMatrix[person.x+1][0].release()
     elif person.x == 0:
-        if not isInObstacle(0, person.y - 1, obstacles):
+        if not isInObstacle(0, person.y - 1, obstacles): # Move North
             lockMatrix[0][person.y-1].acquire()
             person.y -= 1
             lockMatrix[0][person.y+1].release()
@@ -134,11 +138,21 @@ def make_person_move(obstacles, person):
                 lockMatrix[person.x-1][person.y].acquire()
                 person.x -= 1
                 lockMatrix[person.x+1][person.y].release()
-        else:
-            lockMatrix[person.x-1][person.y-1].acquire()
-            person.y -= 1
-            person.x -= 1
-            lockMatrix[person.x+1][person.y+1].release()
+        else: # Move NW
+            if lockMatrix[person.x-1][person.y-1].locked() and lockMatrix[person.x-2][person.y-2].locked(): # If NW already taken, let's try West, then North
+                if not isInObstacle(person.x - 1, 0, obstacles):
+                    lockMatrix[person.x-1][person.y].acquire()
+                    person.x -= 1
+                    lockMatrix[person.x+1][person.y].release()
+                elif not isInObstacle(person.x, person.y - 1, obstacles):
+                    lockMatrix[person.x][person.y-1].acquire()
+                    person.y -= 1
+                    lockMatrix[person.x][person.y+1].release()
+            else:
+                lockMatrix[person.x-1][person.y-1].acquire()
+                person.y -= 1
+                person.x -= 1
+                lockMatrix[person.x+1][person.y+1].release()
     if person.reach_exit():
         lockMatrix[person.x][person.y].release()
 
