@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from Person import *
-from Obstacle import *
+from Rectangle import *
 from GroundDraw import *
 from Settings import *
 import sys
@@ -45,6 +45,7 @@ def simulation(settings):
             threads.append(Thread(target=move, args=(i, persons, obstacles, draw,)))
             threads[i].start()
     elif settings.mode == "1":
+        zones = [Rectangle(0, 0, 127, 127), Rectangle(128, 0, 255, 127), Rectangle(256, 0, 383, 127), Rectangle(384, 0, 511, 127)]
         for i in range(4):
             threads.append(Thread(target=move_persons, args=(i, persons, obstacles, draw,)))
             threads[i].start()
@@ -61,18 +62,17 @@ def simulation(settings):
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
-        if x >= obs.x1 and x <= obs.x2:
-            if y >= obs.y1 and y <= obs.y2:
-                return True
+        if obs.isIn(x, y):
+            return True
     return False
 
 
 def createObstacles():
-    obstacle1 = Obstacle(50, 30, 100, 60)
-    obstacle2 = Obstacle(100, 90, 105, 110)
-    obstacle3 = Obstacle(200, 10, 205, 40)
-    obstacle4 = Obstacle(210, 45, 240, 90)
-    obstacle5 = Obstacle(300, 40, 400, 115)
+    obstacle1 = Rectangle(50, 30, 100, 60)
+    obstacle2 = Rectangle(100, 90, 105, 110)
+    obstacle3 = Rectangle(200, 10, 205, 40)
+    obstacle4 = Rectangle(210, 45, 240, 90)
+    obstacle5 = Rectangle(300, 40, 400, 115)
     return [obstacle1, obstacle2, obstacle3, obstacle4, obstacle5]
 
 
