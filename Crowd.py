@@ -24,11 +24,6 @@ def move(thread_id, persons, obstacles, draw):
 
 
 def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
-    for z in range(len(zonesPersons)):
-        for p in zonesPersons[z]:
-            if isOnRightEdge(p.x, zones):
-                print("lock")
-                lockBorders[z][p.y].acquire()
 
     while len(zonesPersons[thread_id]) > 0:
         rnd = 0
@@ -45,7 +40,8 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
                 lockBorders[thread_id-1][person.y].acquire()
                 person.x -= 1
             else:
-                make_person_move_t1(obstacles, person, zonesPersons, zones)
+                ret = make_person_move_t1(obstacles, person, zonesPersons, zones)
+
 
             if draw != 0:
                 draw.update(person)
@@ -77,7 +73,12 @@ def simulation(settings):
             threads[i].start()
     elif settings.mode == "1":
         zonesPersons = initZonesPersons(persons, zones)
-        lockCases(persons)
+        for z in range(len(zonesPersons)):
+            for p in zonesPersons[z]:
+                if isOnLeftEdge(p.x, zones):
+                    print(p)
+                    print("lock " + str(z) + "," + str(p.y))
+                    lockBorders[z][p.y].acquire()
         for i in range(4):
             threads.append(Thread(target=move_persons, args=(i, obstacles, zones, zonesPersons, draw,)))
             threads[i].start()
@@ -233,17 +234,9 @@ def make_person_move_t1(obstacles, person, zonesPersons, zones):
                 if isFree(person.x-1, person.y, zone):
                     person.x -= 1
         else: # Move NW
-            if lockMatrix[person.x-1][person.y-1].locked() and lockMatrix[person.x-2][person.y-2].locked(): # If NW already taken, let's try West, then North
-                if not isInObstacle(person.x - 1, 0, obstacles):
-                    if isFree(person.x-1, person.y, zone):
-                        person.x -= 1
-                elif not isInObstacle(person.x, person.y - 1, obstacles):
-                    if isFree(person.x, person.y-1, zone):
-                        person.y -= 1
-            else:
-                if isFree(person.x-1, person.y-1, zone):
-                    person.y -= 1
-                    person.x -= 1
+            if isFree(person.x-1, person.y-1, zone):
+                person.y -= 1
+                person.x -= 1
 
 def isFree(x, y, persons):
     for p in persons:
