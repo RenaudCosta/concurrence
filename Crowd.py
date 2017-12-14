@@ -27,6 +27,7 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
     for z in range(len(zonesPersons)):
         for p in zonesPersons[z]:
             if isOnRightEdge(p.x, zones):
+                print("lock")
                 lockBorders[z][p.y].acquire()
 
     while len(zonesPersons[thread_id]) > 0:
@@ -34,7 +35,7 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
         person = zonesPersons[thread_id][rnd]
 
         if person.reach_exit():
-            reach_exit = True
+            zonesPersons[thread_id].remove(person)
         else:
             #release previous lock if needed
             if isOnLeftEdge(person.x, zones):
