@@ -26,7 +26,7 @@ def move(thread_id, persons, obstacles, draw):
 def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
 
     while len(zonesPersons[thread_id]) > 0:
-        rnd = 0
+        rnd = choosePerson(zonesPersons[thread_id], zones)
         person = zonesPersons[thread_id][rnd]
 
         if person.reach_exit():
@@ -34,13 +34,14 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
         else:
             #release previous lock if needed
             if isOnLeftEdge(person.x, zones):
-                lockBorders[thread_id][person.y].release()
+                if lockBorders[thread_id][person.y].locked():
+                    lockBorders[thread_id][person.y].release()
                 make_person_move_t1(obstacles, person, zonesPersons, zones)
             elif isOnRightEdge(person.x, zones) and thread_id > 0:
                 lockBorders[thread_id-1][person.y].acquire()
                 person.x -= 1
             else:
-                ret = make_person_move_t1(obstacles, person, zonesPersons, zones)
+                make_person_move_t1(obstacles, person, zonesPersons, zones)
 
 
             if draw != 0:
@@ -51,6 +52,17 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
             tempPerson = copy.copy(person)
             zonesPersons[thread_id].remove(person)
             zonesPersons[thread_id - 1].append(tempPerson)
+
+def choosePerson(persons, zones):
+    secondChoice = 0
+    for pId in range(len(persons)):
+        person = persons[pId]
+        if isOnLeftEdge(person.x, zones):
+            if person.y == 0:
+                return pId # firstChoice
+            else:
+                secondChoice = pId
+    return secondChoice
 
 
 def simulation(settings):
@@ -76,8 +88,6 @@ def simulation(settings):
         for z in range(len(zonesPersons)):
             for p in zonesPersons[z]:
                 if isOnLeftEdge(p.x, zones):
-                    print(p)
-                    print("lock " + str(z) + "," + str(p.y))
                     lockBorders[z][p.y].acquire()
         for i in range(4):
             threads.append(Thread(target=move_persons, args=(i, obstacles, zones, zonesPersons, draw,)))
