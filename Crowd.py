@@ -34,13 +34,13 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
         else:
             #release previous lock if needed
             if isOnLeftEdge(person.x, zones):
-                lockBorders[thread_id][person.x+1].release()
-                make_person_move(obstacles, person)
+                lockBorders[thread_id][person.y].release()
+                make_person_move_t1(obstacles, person, zonesPersons)
             elif isOnRightEdge(person.x, zones) and thread_id > 0:
-                lockBorders[thread_id-1][person.x-1].acquire()
+                lockBorders[thread_id-1][person.y].acquire()
                 person.x -= 1
             else:
-                make_person_move(obstacles, person)
+                make_person_move_t1(obstacles, person, zonesPersons)
 
             if draw != 0:
                 draw.update(person)
@@ -208,11 +208,36 @@ def make_person_move(obstacles, person):
         lockMatrix[person.x][person.y].release()
 
 
+def make_person_move_t1(obstacles, person, zonePersons):
+    if person.y == 0:
+        if not isInObstacle(person.x - 1, 0, obstacles): # Move West
+            person.x -= 1
+    elif person.x == 0:
+        if not isInObstacle(0, person.y - 1, obstacles): # Move North
+            person.y -= 1
+    else:
+        if isInObstacle(person.x - 1, person.y - 1, obstacles):
+            if not isInObstacle(person.x, person.y - 1, obstacles):
+                person.y -= 1
+            elif not isInObstacle(person.x - 1, person.y, obstacles):
+                person.x -= 1
+        else: # Move NW
+            if lockMatrix[person.x-1][person.y-1].locked() and lockMatrix[person.x-2][person.y-2].locked(): # If NW already taken, let's try West, then North
+                if not isInObstacle(person.x - 1, 0, obstacles):
+                    person.x -= 1
+                elif not isInObstacle(person.x, person.y - 1, obstacles):
+                    person.y -= 1
+            else:
+                person.y -= 1
+                person.x -= 1
+
+
 global lockMatrix
 global lockBorders
 global zones
 lockMatrix = [[Lock() for k in range(128)] for j in range(512)]
-lockBorders = [[Lock() for j in range(3)] for k in range(128)]
+lockBorders = [[Lock() for k in range(128)] for j in range(3)]
+
 zones = [Rectangle(0, 0, 127, 127), Rectangle(128, 0, 255, 127), Rectangle(256, 0, 383, 127),
                  Rectangle(384, 0, 511, 127)]
 settings = generateSettings()
