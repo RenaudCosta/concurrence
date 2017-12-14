@@ -24,21 +24,13 @@ def move(thread_id, persons, obstacles, draw):
 
 
 def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
-    reach_exit = False
     for z in range(len(zonesPersons)):
         for p in zonesPersons[z]:
             if isOnRightEdge(p.x, zones):
                 lockBorders[z][p.y].acquire()
 
-    while not reach_exit:
-        if (len(zonesPersons[thread_id]) > 1):
-            rnd = randint(0,len(zonesPersons[thread_id])-1)
-        elif (len(zonesPersons[thread_id]) == 1):
-            rnd = 0
-        else:
-            print("REACH")
-            reach_exit = True
-            break
+    while len(zonesPersons[thread_id]) > 0:
+        rnd = 0
         person = zonesPersons[thread_id][rnd]
 
         if person.reach_exit():
