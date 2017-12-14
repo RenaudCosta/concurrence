@@ -36,8 +36,8 @@ def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
             if isOnLeftEdge(person.x, zones):
                 lockBorders[thread_id][person.x+1].release()
                 make_person_move(obstacles, person)
-            elif isOnRightEdge(person.x, zones):
-                lockBorders[thread_id-1][person.x].acquire()
+            elif isOnRightEdge(person.x, zones) and thread_id > 0:
+                lockBorders[thread_id-1][person.x-1].acquire()
                 person.x -= 1
             else:
                 make_person_move(obstacles, person)
