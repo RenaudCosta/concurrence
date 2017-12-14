@@ -8,6 +8,7 @@ from random import randint
 import time
 from threading import Lock, Thread
 import psutil
+import copy
 
 def move(thread_id, persons, obstacles, draw):
     reach_exit = False
@@ -22,8 +23,33 @@ def move(thread_id, persons, obstacles, draw):
                 draw.update(person)
 
 
-def move_persons(thread_id, persons, obstacles, draw):
-    print("donothing")
+def move_persons(thread_id, obstacles, zones, zonesPersons, draw):
+    reach_exit = False
+    while not reach_exit:
+        rnd = randint(0,len(zonesPersons[thread_id])-1)
+        person = zonesPersons[thread_id][rnd]
+
+        if person.reach_exit():
+            reach_exit = True
+        else:
+            #release previous lock if needed
+            if isOnLeftEdge(person.x, zones):
+                lockBorders[thread_id][person.x+1].release()
+                make_person_move(obstacles, person)
+            elif isOnRightEdge(person.x, zones):
+                lockBorders[thread_id-1][person.x].acquire()
+                person.x -= 1
+            else:
+                make_person_move(obstacles, person)
+
+            if draw != 0:
+                draw.update(person)
+
+        # check changing zone
+        if not zones[thread_id].isIn(person.x, person.y):
+            tempPerson = copy.copy(person)
+            zonesPersons[thread_id].remove(person)
+            zonesPersons[thread_id - 1].append(tempPerson)
 
 
 def simulation(settings):
@@ -45,9 +71,10 @@ def simulation(settings):
             threads.append(Thread(target=move, args=(i, persons, obstacles, draw,)))
             threads[i].start()
     elif settings.mode == "1":
-        zones = [Rectangle(0, 0, 127, 127), Rectangle(128, 0, 255, 127), Rectangle(256, 0, 383, 127), Rectangle(384, 0, 511, 127)]
+        zonesPersons = initZonesPersons(persons, zones)
+        lockCases(persons)
         for i in range(4):
-            threads.append(Thread(target=move_persons, args=(i, persons, obstacles, draw,)))
+            threads.append(Thread(target=move_persons, args=(i, obstacles, zones, zonesPersons, draw,)))
             threads[i].start()
 
     if not settings.metrics:
@@ -60,12 +87,36 @@ def simulation(settings):
         return [execTime, psutil.cpu_percent(interval=None)]
 
 
+def initZonesPersons(persons, zones):
+    zonesPersons = [[] for i in range(4)]
+    for p in persons:
+        for i in range(len(zones)):
+            if zones[i].isIn(p.x, p.y):
+                zonesPersons[i].append(p)
+    return zonesPersons
+
+def lockCases(persons):
+    for p in persons:
+        lockMatrix[p.x][p.y].acquire()
+
+
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
         if obs.isIn(x, y):
             return True
     return False
 
+def isOnRightEdge(x, zones):
+    return (getZone(x, zones) != getZone(x-1, zones))
+
+def isOnLeftEdge(x, zones):
+    return (getZone(x, zones) != getZone(x+1, zones))
+
+def getZone(x, zones):
+    for i in range(len(zones)):
+        if zones[i].isIn(x, 1):
+            return i
+    return -1
 
 def createObstacles():
     obstacle1 = Rectangle(50, 30, 100, 60)
@@ -158,7 +209,12 @@ def make_person_move(obstacles, person):
 
 
 global lockMatrix
+global lockBorders
+global zones
 lockMatrix = [[Lock() for k in range(128)] for j in range(512)]
+lockBorders = [[Lock() for j in range(3)] for k in range(128)]
+zones = [Rectangle(0, 0, 127, 127), Rectangle(128, 0, 255, 127), Rectangle(256, 0, 383, 127),
+                 Rectangle(384, 0, 511, 127)]
 settings = generateSettings()
 if settings.metrics:
     execTimes = []
