@@ -127,17 +127,17 @@ def move_persons(thread_id, obstacles, draw):
     while nombre_personne != 0:
         if len(foule_par_zone[thread_id]) != 0:
             personnage = foule_par_zone[thread_id][personne_index]
-            a_bouger_ou_finis_ou_changer_zone = fait_bouger_personne(personnage, obstacles,
-                                            thread_id, draw)
-            if not a_bouger_ou_finis_ou_changer_zone and len(foule_par_zone[thread_id])-1 > personne_index:
+            a_pas_bouger_ou_finis_ou_changer_zone = fait_bouger_personne(personnage, obstacles,
+                                                                     thread_id, draw)
+            if not a_pas_bouger_ou_finis_ou_changer_zone and len(foule_par_zone[thread_id]) - 1 > personne_index:
                 personne_index += 1
-            elif not a_bouger_ou_finis_ou_changer_zone:
+            elif not a_pas_bouger_ou_finis_ou_changer_zone:
                 personne_index = 0
-            nb_personne = 0
-            for i in range(len(foule_par_zone)):
-                for j in range(len(foule_par_zone[i])):
-                    nb_personne += 1
-            nombre_personne = nb_personne
+        nb_personne = 0
+        for i in range(len(foule_par_zone)):
+            for j in range(len(foule_par_zone[i])):
+                nb_personne += 1
+        nombre_personne = nb_personne
 
 
 def is_someone(x, y, thread_id):
@@ -148,7 +148,6 @@ def is_someone(x, y, thread_id):
 
 
 def est_dans_la_bonne_zone(x_haut_gauche, y_haut_gauche, thread_id):
-
     return zones[thread_id].contient(x_haut_gauche + 2, y_haut_gauche) or zones[thread_id].contient(x_haut_gauche,
                                                                                                     y_haut_gauche + 2) or \
            zones[thread_id].contient(x_haut_gauche + 2, y_haut_gauche + 2)
