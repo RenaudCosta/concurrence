@@ -115,6 +115,8 @@ def move_persons(thread_id, obstacles, draw):
     personne_index = 0
     while True:
         if len(foule_par_zone[thread_id]) != 0:
+            if not len(foule_par_zone[thread_id]) > personne_index:
+                personne_index = 0
             personnage = foule_par_zone[thread_id][personne_index]
             personne_index = fait_bouger_personne(personnage, obstacles, personne_index,
                                                   thread_id)
@@ -181,7 +183,7 @@ def aller_haut(personne):
 
 
 def position_fait_partie_barriere(x_position):
-    return x_position == 512 - 1 or x_position == 128 - 1 or x_position == 256 - 1 or x_position == 256 + 128 - 1
+    return x_position == 128 - 1 or x_position == 256 - 1 or x_position == 256 + 128 - 1
 
 
 def pas_de_personnes_autre_thread(thread_id, x, y):
@@ -209,10 +211,11 @@ def fait_bouger_personne(personne, obstacles, personne_index, thread_id):
     else:
         return personne_index + 1
     if position_fait_partie_barriere(personne.x):
-        foule_par_zone[thread_id].remove(personne)
-        foule_par_zone[thread_id - 1].append(personne)
+        if not position_fait_partie_barriere(x_precedent):
+            foule_par_zone[thread_id].remove(personne)
+            foule_par_zone[thread_id - 1].append(personne)
         barrieres[thread_id - 1][personne.y].acquire()
-        personne_index = len(foule_par_zone[thread_id-1])-1
+        personne_index = len(foule_par_zone[thread_id])-1
     if position_fait_partie_barriere(x_precedent):
         barrieres[thread_id][y_precedent].release()
     if personne.reach_exit():
