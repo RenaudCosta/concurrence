@@ -1,13 +1,17 @@
 #!/usr/bin/python
-from Person import *
-from Obstacle import *
-from GroundDraw import *
-from Settings import *
-import sys
-from random import randint
-import time
 from threading import Lock, Thread
+
 import psutil
+
+from Zone import *
+from GroundDraw import *
+from Obstacle import *
+from Person import *
+from Settings import *
+
+
+######################## Partie Scenario 1 ###############################
+
 
 def move(thread_id, persons, obstacles, draw):
     reach_exit = False
@@ -22,47 +26,212 @@ def move(thread_id, persons, obstacles, draw):
                 draw.update(person)
 
 
-def move_persons(thread_id, persons, obstacles, draw):
-    print("donothing")
-
-
-def simulation(settings):
-    nbPersons = pow(2, int(settings.persons))
-    obstacles = createObstacles()
-    persons = createPersons(nbPersons, obstacles)
-
-    startingTime = time.clock()
-    psutil.cpu_percent(interval=None) # 1st call
-    if not settings.metrics:
-        draw = GroundDraw(obstacles, persons)
+def make_person_move(obstacles, person):
+    if person.y == 0:
+        if not isInObstacle(person.x - 1, 0, obstacles):  # Move West
+            lockMatrix[person.x - 1][0].acquire()
+            person.x -= 1
+            lockMatrix[person.x + 1][0].release()
+    elif person.x == 0:
+        if not isInObstacle(0, person.y - 1, obstacles):  # Move North
+            lockMatrix[0][person.y - 1].acquire()
+            person.y -= 1
+            lockMatrix[0][person.y + 1].release()
     else:
-        draw = 0
+        if isInObstacle(person.x - 1, person.y - 1, obstacles):
+            if not isInObstacle(person.x, person.y - 1, obstacles):
+                lockMatrix[person.x][person.y - 1].acquire()
+                person.y -= 1
+                lockMatrix[person.x][person.y + 1].release()
+            elif not isInObstacle(person.x - 1, person.y, obstacles):
+                lockMatrix[person.x - 1][person.y].acquire()
+                person.x -= 1
+                lockMatrix[person.x + 1][person.y].release()
+        else:  # Move NW
+            if lockMatrix[person.x - 1][person.y - 1].locked() and lockMatrix[person.x - 2][
+                        person.y - 2].locked():  # If NW already taken, let's try West, then North
+                if not isInObstacle(person.x - 1, 0, obstacles):
+                    lockMatrix[person.x - 1][person.y].acquire()
+                    person.x -= 1
+                    lockMatrix[person.x + 1][person.y].release()
+                elif not isInObstacle(person.x, person.y - 1, obstacles):
+                    lockMatrix[person.x][person.y - 1].acquire()
+                    person.y -= 1
+                    lockMatrix[person.x][person.y + 1].release()
+            else:
+                lockMatrix[person.x - 1][person.y - 1].acquire()
+                person.y -= 1
+                person.x -= 1
+                lockMatrix[person.x + 1][person.y + 1].release()
+    if person.reach_exit():
+        lockMatrix[person.x][person.y].release()
 
-    threads = []
 
-    if settings.mode == "0":
-        for i in range(nbPersons):
-            threads.append(Thread(target=move, args=(i, persons, obstacles, draw,)))
-            threads[i].start()
-    elif settings.mode == "1":
-        for i in range(4):
-            threads.append(Thread(target=move_persons, args=(i, persons, obstacles, draw,)))
-            threads[i].start()
+#################### Partie scenario 2 ###############################
 
-    if not settings.metrics:
-        draw.start()
+global foule_par_zone
+foule_par_zone = [[] for i in range(4)]
 
-    # After the simulation is over
-    execTime = time.clock() - startingTime
+global barrieres
+barrieres = [[Lock() for k in range(128)] for j in range(3)]
 
-    if settings.metrics:
-        return [execTime, psutil.cpu_percent(interval=None)]
+global zones
+zones = []
 
+
+def creer_zone():
+    decal = 512 / 4
+    for i in range(0, 512, decal):
+        zones.append(Zone(i, 0, i + decal, 128))
+
+
+def ajouter_foule_par_zone(zones, persons):
+    for zone_id in range(len(zones)):
+        zone = zones[zone_id]
+        for person in persons:
+            if zone.contains(person):
+                foule_par_zone[zone_id].append(person)
+
+
+def initialiser_barriere():
+    decal = 512 / 4
+    for foule_id in range(len(foule_par_zone)):
+        for personne in foule_par_zone[foule_id]:
+            if personne.x == decal - 1:
+                barrieres[0][personne.y].acquire()
+            elif personne.x == decal * 2 - 1:
+                barrieres[1][personne.y].acquire()
+            elif personne.x == decal * 3 - 1:
+                barrieres[2][personne.y].acquire()
+
+
+def initialisation(persons):
+    creer_zone()
+    ajouter_foule_par_zone(zones, persons)
+    initialiser_barriere()
+
+
+def move_persons(thread_id, obstacles, draw):
+    personne_index = 0
+    while True:
+        if len(foule_par_zone[thread_id]) != 0:
+            if len(foule_par_zone[thread_id]) < personne_index:
+                personne_index = 0
+            personne_index = fait_bouger_personne(foule_par_zone[thread_id][personne_index], obstacles, personne_index,
+                                                  thread_id)
+            if len(foule_par_zone[thread_id]) != 0:
+                if draw != 0:
+                    if len(foule_par_zone[thread_id]) > personne_index:
+                        draw.update(foule_par_zone[thread_id][personne_index])
+
+
+
+def is_someone(x, y, thread_id):
+    for personne in foule_par_zone[thread_id]:
+        if personne.x == x and personne.y == y:
+            return True
+    return False
+
+
+def est_dans_la_bonne_zone(x_haut_gauche, y_haut_gauche, thread_id):
+    return zones[thread_id].contient(x_haut_gauche + 2, y_haut_gauche) or zones[thread_id].contient(x_haut_gauche,
+                                                                                                    y_haut_gauche + 2) or \
+           zones[thread_id].contient(x_haut_gauche + 2, y_haut_gauche + 2)
+
+
+def aller_haut_gauche(personne):
+    personne.x -= 1
+    personne.y -= 1
+
+
+def verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles):
+    if x_haut_gauche < 0 or y_haut_gauche < 0:
+        return False
+    if is_someone(x_haut_gauche, y_haut_gauche, thread_id):
+        return False
+    if isInObstacle(x_haut_gauche, y_haut_gauche, obstacles):
+        return False
+    if not est_dans_la_bonne_zone(x_haut_gauche, y_haut_gauche, thread_id):
+        return False
+    return True
+
+
+def aller_gauche_possible(personne, obstacles, thread_id):
+    x_haut_gauche = personne.x - 1
+    y_haut_gauche = personne.y
+    return verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles)
+
+
+def aller_haut_gauche_possible(personne, obstacles, thread_id):
+    x_haut_gauche = personne.x - 1
+    y_haut_gauche = personne.y - 1
+    return verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles)
+
+
+def aller_gauche(personne):
+    personne.x -= 1
+
+
+def aller_haut_possible(personne, obstacles, thread_id):
+    x_haut_gauche = personne.x
+    y_haut_gauche = personne.y - 1
+    return verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles)
+
+
+def aller_haut(personne):
+    personne.y -= 1
+
+
+def position_fait_partie_barriere(x_position):
+    return x_position == 512 - 1 or x_position == 128 - 1 or x_position == 256 - 1 or x_position == 256 + 128 - 1
+
+
+def pas_de_personnes_autre_thread(thread_id, x, y):
+    for perso in foule_par_zone[thread_id]:
+        if x == perso.x and y == perso.y:
+            return False
+    return True
+
+
+def fait_bouger_personne(personne, obstacles, personne_index, thread_id):
+    x_precedent = personne.x
+    y_precedent = personne.y
+    if aller_haut_gauche_possible(personne, obstacles, thread_id) and pas_de_personnes_autre_thread(thread_id - 1,
+                                                                                                    personne.x - 1,
+                                                                                                    personne.y - 1):
+        aller_haut_gauche(personne)
+    elif aller_gauche_possible(personne, obstacles, thread_id) and pas_de_personnes_autre_thread(thread_id - 1,
+                                                                                                 personne.x - 1,
+                                                                                                 personne.y):
+        aller_gauche(personne)
+    elif aller_haut_possible(personne, obstacles, thread_id):
+        aller_haut(personne)
+    elif personne_index + 1 == len(foule_par_zone[thread_id]):
+        return 0
+    else:
+        return personne_index + 1
+    if position_fait_partie_barriere(x_precedent):
+        barrieres[thread_id][y_precedent].release()
+    if position_fait_partie_barriere(personne.x):
+        foule_par_zone[thread_id].remove(personne)
+        foule_par_zone[thread_id - 1].append(personne)
+        barrieres[thread_id - 1][personne.y].acquire()
+        personne_index = len(foule_par_zone[thread_id-1])-1
+    if personne.reach_exit():
+        foule_par_zone[thread_id].remove(personne)
+    return personne_index
+
+
+def essai_transfert_personne_autre_zone(personne):
+    pass
+
+
+#################### Partie commune aux 2 ############################
 
 def isInObstacle(x, y, obstacles):
     for obs in obstacles:
-        if x >= obs.x1 and x <= obs.x2:
-            if y >= obs.y1 and y <= obs.y2:
+        if obs.x1 <= x <= obs.x2:
+            if obs.y1 <= y <= obs.y2:
                 return True
     return False
 
@@ -82,15 +251,12 @@ def createPersons(nbPersons, obstacles):
     for y in range(128):
         for x in range(512):
             spots.append([x, y])
-
-    # remove exit as an availible spot
     spots.remove([0, 0])
     spots.remove([0, 1])
     spots.remove([1, 0])
     spots.remove([1, 1])
-
     for n in range(nbPersons):
-        index = randint(0, len(spots)-1)
+        index = randint(0, len(spots) - 1)
         newX = spots[index][0]
         newY = spots[index][1]
         while isInObstacle(newX, newY, obstacles):
@@ -100,8 +266,47 @@ def createPersons(nbPersons, obstacles):
         person = Person(newX, newY, n + 1)
         del spots[index]
         persons.append(person)
-
     return persons
+
+
+################### Lancement ########################################
+
+
+
+
+
+def simulation(settings):
+    nbPersons = pow(2, int(settings.persons))
+    obstacles = createObstacles()
+    persons = createPersons(nbPersons, obstacles)
+
+    startingTime = time.clock()
+    psutil.cpu_percent(interval=None)  # 1st call
+    if not settings.metrics:
+        draw = GroundDraw(obstacles, persons)
+    else:
+        draw = 0
+
+    threads = []
+
+    if settings.mode == "0":
+        for i in range(nbPersons):
+            threads.append(Thread(target=move, args=(i, persons, obstacles, draw,)))
+            threads[i].start()
+    elif settings.mode == "1":
+        initialisation(persons)
+        for i in range(4):
+            threads.append(Thread(target=move_persons, args=(i, obstacles, draw,)))
+            threads[i].start()
+
+    if not settings.metrics:
+        draw.start()
+
+    # After the simulation is over
+    execTime = time.clock() - startingTime
+
+    if settings.metrics:
+        return [execTime, psutil.cpu_percent(interval=None)]
 
 
 def generateSettings():
@@ -116,45 +321,6 @@ def generateSettings():
                 elif sys.argv[i][1] == "m":
                     m = True
     return Settings(t, p, m)
-
-def make_person_move(obstacles, person):
-    if person.y == 0:
-        if not isInObstacle(person.x - 1, 0, obstacles): # Move West
-            lockMatrix[person.x-1][0].acquire()
-            person.x -= 1
-            lockMatrix[person.x+1][0].release()
-    elif person.x == 0:
-        if not isInObstacle(0, person.y - 1, obstacles): # Move North
-            lockMatrix[0][person.y-1].acquire()
-            person.y -= 1
-            lockMatrix[0][person.y+1].release()
-    else:
-        if isInObstacle(person.x - 1, person.y - 1, obstacles):
-            if not isInObstacle(person.x, person.y - 1, obstacles):
-                lockMatrix[person.x][person.y-1].acquire()
-                person.y -= 1
-                lockMatrix[person.x][person.y+1].release()
-            elif not isInObstacle(person.x - 1, person.y, obstacles):
-                lockMatrix[person.x-1][person.y].acquire()
-                person.x -= 1
-                lockMatrix[person.x+1][person.y].release()
-        else: # Move NW
-            if lockMatrix[person.x-1][person.y-1].locked() and lockMatrix[person.x-2][person.y-2].locked(): # If NW already taken, let's try West, then North
-                if not isInObstacle(person.x - 1, 0, obstacles):
-                    lockMatrix[person.x-1][person.y].acquire()
-                    person.x -= 1
-                    lockMatrix[person.x+1][person.y].release()
-                elif not isInObstacle(person.x, person.y - 1, obstacles):
-                    lockMatrix[person.x][person.y-1].acquire()
-                    person.y -= 1
-                    lockMatrix[person.x][person.y+1].release()
-            else:
-                lockMatrix[person.x-1][person.y-1].acquire()
-                person.y -= 1
-                person.x -= 1
-                lockMatrix[person.x+1][person.y+1].release()
-    if person.reach_exit():
-        lockMatrix[person.x][person.y].release()
 
 
 global lockMatrix
