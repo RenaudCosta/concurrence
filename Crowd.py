@@ -81,8 +81,9 @@ zones = []
 
 def creer_zone():
     decal = 512 / 4
-    for i in range(0, 512, decal):
-        zones.append(Zone(i, 0, i + decal, 128))
+    decal = int(decal)
+    for i in range(4):
+        zones.append(Zone(i * decal, 0, (i + 1) * decal, 128))
 
 
 def ajouter_foule_par_zone(zones, persons):
@@ -106,6 +107,12 @@ def initialiser_barriere():
 
 
 def initialisation(persons):
+    for i in range(len(barrieres)):
+        for j in range(len(barrieres[i])):
+            if barrieres[i][j].locked():
+                barrieres[i][j].release()
+    while len(zones) > 0:
+        del zones[0]
     creer_zone()
     ajouter_foule_par_zone(zones, persons)
     initialiser_barriere()
@@ -113,17 +120,24 @@ def initialisation(persons):
 
 def move_persons(thread_id, obstacles, draw):
     personne_index = 0
-    while True:
+    nombre_personne = 0
+    for i in range(len(foule_par_zone)):
+        for j in range(len(foule_par_zone[i])):
+            nombre_personne += 1
+    while nombre_personne != 0:
         if len(foule_par_zone[thread_id]) != 0:
-            if not len(foule_par_zone[thread_id]) > personne_index:
-                personne_index = 0
             personnage = foule_par_zone[thread_id][personne_index]
-            personne_index = fait_bouger_personne(personnage, obstacles, personne_index,
-                                                  thread_id)
-            if len(foule_par_zone[thread_id]) != 0:
-                if draw != 0:
-                    if len(foule_par_zone[thread_id]) > personne_index:
-                        draw.update(foule_par_zone[thread_id][personne_index])
+            a_bouger_ou_finis_ou_changer_zone = fait_bouger_personne(personnage, obstacles,
+                                            thread_id, draw)
+            if not a_bouger_ou_finis_ou_changer_zone and len(foule_par_zone[thread_id])-1 > personne_index:
+                personne_index += 1
+            elif not a_bouger_ou_finis_ou_changer_zone:
+                personne_index = 0
+            nb_personne = 0
+            for i in range(len(foule_par_zone)):
+                for j in range(len(foule_par_zone[i])):
+                    nb_personne += 1
+            nombre_personne = nb_personne
 
 
 def is_someone(x, y, thread_id):
@@ -134,6 +148,7 @@ def is_someone(x, y, thread_id):
 
 
 def est_dans_la_bonne_zone(x_haut_gauche, y_haut_gauche, thread_id):
+
     return zones[thread_id].contient(x_haut_gauche + 2, y_haut_gauche) or zones[thread_id].contient(x_haut_gauche,
                                                                                                     y_haut_gauche + 2) or \
            zones[thread_id].contient(x_haut_gauche + 2, y_haut_gauche + 2)
@@ -144,7 +159,7 @@ def aller_haut_gauche(personne):
     personne.y -= 1
 
 
-def verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles):
+def verifie_la_direction(x_haut_gauche, y_haut_gauche, thread_id, obstacles):
     if x_haut_gauche < 0 or y_haut_gauche < 0:
         return False
     if is_someone(x_haut_gauche, y_haut_gauche, thread_id):
@@ -159,13 +174,13 @@ def verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obst
 def aller_gauche_possible(personne, obstacles, thread_id):
     x_haut_gauche = personne.x - 1
     y_haut_gauche = personne.y
-    return verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles)
+    return verifie_la_direction(x_haut_gauche, y_haut_gauche, thread_id, obstacles)
 
 
 def aller_haut_gauche_possible(personne, obstacles, thread_id):
     x_haut_gauche = personne.x - 1
     y_haut_gauche = personne.y - 1
-    return verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles)
+    return verifie_la_direction(x_haut_gauche, y_haut_gauche, thread_id, obstacles)
 
 
 def aller_gauche(personne):
@@ -175,7 +190,7 @@ def aller_gauche(personne):
 def aller_haut_possible(personne, obstacles, thread_id):
     x_haut_gauche = personne.x
     y_haut_gauche = personne.y - 1
-    return verifie_la_direction(personne, x_haut_gauche, y_haut_gauche, thread_id, obstacles)
+    return verifie_la_direction(x_haut_gauche, y_haut_gauche, thread_id, obstacles)
 
 
 def aller_haut(personne):
@@ -193,7 +208,7 @@ def pas_de_personnes_autre_thread(thread_id, x, y):
     return True
 
 
-def fait_bouger_personne(personne, obstacles, personne_index, thread_id):
+def fait_bouger_personne(personne, obstacles, thread_id, draw):
     x_precedent = personne.x
     y_precedent = personne.y
     if aller_haut_gauche_possible(personne, obstacles, thread_id) and pas_de_personnes_autre_thread(thread_id - 1,
@@ -206,21 +221,22 @@ def fait_bouger_personne(personne, obstacles, personne_index, thread_id):
         aller_gauche(personne)
     elif aller_haut_possible(personne, obstacles, thread_id):
         aller_haut(personne)
-    elif personne_index + 1 == len(foule_par_zone[thread_id]):
-        return 0
     else:
-        return personne_index + 1
+        return False
+    if draw != 0:
+        draw.update(personne)
+    if personne.reach_exit():
+        foule_par_zone[thread_id].remove(personne)
+        return False
     if position_fait_partie_barriere(personne.x):
         if not position_fait_partie_barriere(x_precedent):
             foule_par_zone[thread_id].remove(personne)
             foule_par_zone[thread_id - 1].append(personne)
         barrieres[thread_id - 1][personne.y].acquire()
-        personne_index = len(foule_par_zone[thread_id])-1
-    if position_fait_partie_barriere(x_precedent):
+        return False
+    if position_fait_partie_barriere(x_precedent) and barrieres[thread_id][y_precedent].locked():
         barrieres[thread_id][y_precedent].release()
-    if personne.reach_exit():
-        foule_par_zone[thread_id].remove(personne)
-    return personne_index
+    return True
 
 
 def essai_transfert_personne_autre_zone(personne):

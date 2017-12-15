@@ -14,6 +14,7 @@ class GroundDraw:
         self.canvas.pack()
 
     def update(self, person):
+        time.sleep(0.01)
         self.canvas.delete(self.characterPosition[person.id])
         if not person.reach_exit():
             x = person.x
