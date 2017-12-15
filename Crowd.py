@@ -115,15 +115,13 @@ def move_persons(thread_id, obstacles, draw):
     personne_index = 0
     while True:
         if len(foule_par_zone[thread_id]) != 0:
-            if len(foule_par_zone[thread_id]) < personne_index:
-                personne_index = 0
-            personne_index = fait_bouger_personne(foule_par_zone[thread_id][personne_index], obstacles, personne_index,
+            personnage = foule_par_zone[thread_id][personne_index]
+            personne_index = fait_bouger_personne(personnage, obstacles, personne_index,
                                                   thread_id)
             if len(foule_par_zone[thread_id]) != 0:
                 if draw != 0:
                     if len(foule_par_zone[thread_id]) > personne_index:
                         draw.update(foule_par_zone[thread_id][personne_index])
-
 
 
 def is_someone(x, y, thread_id):
@@ -210,13 +208,13 @@ def fait_bouger_personne(personne, obstacles, personne_index, thread_id):
         return 0
     else:
         return personne_index + 1
-    if position_fait_partie_barriere(x_precedent):
-        barrieres[thread_id][y_precedent].release()
     if position_fait_partie_barriere(personne.x):
         foule_par_zone[thread_id].remove(personne)
         foule_par_zone[thread_id - 1].append(personne)
         barrieres[thread_id - 1][personne.y].acquire()
         personne_index = len(foule_par_zone[thread_id-1])-1
+    if position_fait_partie_barriere(x_precedent):
+        barrieres[thread_id][y_precedent].release()
     if personne.reach_exit():
         foule_par_zone[thread_id].remove(personne)
     return personne_index
